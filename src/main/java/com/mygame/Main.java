@@ -45,7 +45,7 @@ public class Main extends SimpleApplication {
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         // bulletAppState.setDebugEnable(true); // enables debug mode
-        flyCam.setEnabled(false);
+        flyCam.setEnabled(true);
         // Scene setup
         cam.setFrustumPerspective(45f, (float)cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
         
@@ -80,14 +80,14 @@ public class Main extends SimpleApplication {
         // tp player to room start
         playerControl.warp(new Vector3f(0.1f, 1f, 1.1f));
         
-        setupKeys();
+        //setupKeys();
         
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
         rootNode.addLight(sun);
         
     }
-
+/*
     public void setupKeys() {
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
@@ -102,7 +102,7 @@ public class Main extends SimpleApplication {
     private final actionListener() {
         
     }
-    
+*/
     @Override
     public void simpleUpdate(float tpf) {
         //TODO: add update code
