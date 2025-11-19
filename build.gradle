@@ -5,7 +5,7 @@ plugins {
 }
 
 javafx {
-    version = "17" // Or a more recent LTS version (e.g., 21 or 22)
+    version = "21" // Or a more recent LTS version (e.g., 21 or 22)
     modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics', 'javafx.swing' ]
 }
 
@@ -19,6 +19,13 @@ application {
     if (System.getProperty("os.name").toLowerCase().contains("mac")) {
         applicationDefaultJvmArgs = ['-XstartOnFirstThread']
     }
+    applicationDefaultJvmArgs = [
+        '--add-exports=javafx.graphics/com.sun.javafx.cursor=ALL-UNNAMED',
+        '--add-exports=javafx.graphics/com.sun.javafx.stage=ALL-UNNAMED',
+        '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+        '--add-exports=javafx.graphics/com.sun.javafx.embed=ALL-UNNAMED', // <--- NEWLY ADDED FIX
+        '--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED' // <--- NEWLY ADDED FIX
+    ]
 }
 
 repositories {
