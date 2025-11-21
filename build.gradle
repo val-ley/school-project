@@ -2,10 +2,11 @@ plugins {
     id 'java'
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.0.13'
+    id 'com.github.johnrengelman.shadow' version '8.1.1' // <--- ADD THIS
 }
 
 javafx {
-    version = "21" // Or a more recent LTS version (e.g., 21 or 22)
+    version = "21"
     modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics', 'javafx.swing' ]
 }
 
@@ -15,7 +16,8 @@ version '1.0'
 application {
     applicationName = 'Bunker'
     mainClass = 'com.mygame.Main'
-    // Mac OS with LWJGL 3 needs to be started with this JVM argument
+    
+    // ... (Your existing JVM args logic is fine here for ./gradlew run)
     if (System.getProperty("os.name").toLowerCase().contains("mac")) {
         applicationDefaultJvmArgs = ['-XstartOnFirstThread']
     }
@@ -23,28 +25,24 @@ application {
         '--add-exports=javafx.graphics/com.sun.javafx.cursor=ALL-UNNAMED',
         '--add-exports=javafx.graphics/com.sun.javafx.stage=ALL-UNNAMED',
         '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
-        '--add-exports=javafx.graphics/com.sun.javafx.embed=ALL-UNNAMED', // <--- NEWLY ADDED FIX
-        '--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED' // <--- NEWLY ADDED FIX
+        '--add-exports=javafx.graphics/com.sun.javafx.embed=ALL-UNNAMED',
+        '--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED'
     ]
 }
 
 repositories {
     mavenCentral()
-    
-    maven {
-        url 'https://jitpack.io'
-    }
+    maven { url 'https://jitpack.io' }
 }
 
 project.ext {
   jmeVer = '3.8.1-stable'
 }
 
+// ... (Your project(":assets") block remains unchanged) ...
 project(":assets") {
     apply plugin: "java"
-
     buildDir = rootProject.file("build/assets")
-
     sourceSets {
         main {
             resources {
@@ -52,7 +50,6 @@ project(":assets") {
             }
         }
     }
-
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
@@ -61,39 +58,44 @@ project(":assets") {
 }
 
 dependencies {
-
-  // Core JME
+  // ... (Your existing dependencies remain unchanged) ...
   implementation "org.jmonkeyengine:jme3-core:$jmeVer"
   implementation "org.jmonkeyengine:jme3-desktop:$jmeVer"
-  // Mac OS with LWJGL 3 doesn't allow AWT/Swing
+  
   if (!System.getProperty("os.name").toLowerCase().contains("mac")) {
     implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmeVer"
   }
   implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVer"
-
-  // Suppress errors / warnings building in SDK
   implementation "org.jmonkeyengine:jme3-jogg:$jmeVer"
   implementation "org.jmonkeyengine:jme3-plugins:$jmeVer"
-  
-  // GUI Library
   implementation "com.simsilica:lemur:1.16.0"
-  
-  // Physics Library
   implementation "com.github.stephengold:Minie:9.0.1"
-  
-  // Networking Library
   implementation "org.jmonkeyengine:jme3-networking:$jmeVer"
-
-  // Additional Libraries
   implementation "org.jmonkeyengine:jme3-effects:$jmeVer"
   implementation "com.simsilica:sio2:1.8.0"
   implementation "com.github.stephengold:Wes:0.8.1"
-
   implementation 'io.tlf.jme:jme-jfx:1.2.1'
     
   // Assets sub-project
   runtimeOnly project(':assets')
 }
+
+// <--- NEW CONFIG START --->
+shadowJar {
+    archiveBaseName.set('Bunker-Single')
+    archiveClassifier.set('') // Removes "-all" from the filename
+    archiveVersion.set('1.0')
+    
+    // This merges META-INF/services files. 
+    // CRITICAL for JME Plugins, Minie, and Networking to work correctly.
+    mergeServiceFiles()
+
+    // Exclude signature files from dependencies (prevents "Invalid Signature" errors)
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+// <--- NEW CONFIG END --->
 
 jar {
     manifest {

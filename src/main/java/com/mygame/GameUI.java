@@ -2,6 +2,7 @@ package com.mygame;
 
 import com.jme3.app.SimpleApplication;
 import io.tlf.jme.jfx.JavaFxUI;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
@@ -63,8 +64,7 @@ public class GameUI {
         // bind the VBox height to the root height so it stretches top-to-bottom
         menuColumn.prefHeightProperty().bind(rootPane.heightProperty());
         // add some padding on the left so buttons aren't glued to the screen edge
-        menuColumn.setStyle("-fx-padding: 0 0 0 50;"); 
-
+        menuColumn.setStyle("-fx-padding: 0 0 0 50;");
         // create buttons
         Button btnNewGame = createStyledButton("NEW GAME");
         Button btnLoadGame = createStyledButton("LOAD GAME");
@@ -78,17 +78,17 @@ public class GameUI {
         btnQuit.setOnAction(e -> app.stop());
 
         // add Buttons with Spacers (To distribute height equally)
-        // add a "spacer" region between every item that grows to fill space. this does not work for some reason
+        // add a "spacer" region between every item -> height=0 to fill space, height>0 to give specified height
         menuColumn.getChildren().addAll(
-            createSpacer(),
+            createSpacer(10, "#ff00ff"),
             btnNewGame,
-            createSpacer(),
+            createSpacer(10, "#ff00ff"),
             btnLoadGame,
-            createSpacer(),
+            createSpacer(10, "#ff00ff"),
             btnSettings,
-            createSpacer(),
+            createSpacer(10, "#ff00ff"),
             btnQuit,
-            createSpacer()
+            createSpacer(10, "#ff00ff")
         );
 
         // final assembly
@@ -99,10 +99,21 @@ public class GameUI {
     /**
      * creates a region that acts as a flexible spacer in a VBox
      */
-    private Region createSpacer() {
+    private Region createSpacer(double height, String color) {
         Region spacer = new Region();
-        // set the spacer to the available space for VBox
-        VBox.setVgrow(spacer, Priority.ALWAYS); 
+        // CornerRadii makes the corners of the region rounded, not sure what Insets does
+        BackgroundFill regionFill = new BackgroundFill(Color.valueOf(color), new CornerRadii(0), new Insets(0));
+        Background background = new Background(regionFill);
+        spacer.setBackground(background);
+        // a height of 0 makes the spacer automatically fill up the menu, otherwise it takes a specified height
+        if (height > 0) {
+            spacer.setMinHeight(height);
+            spacer.setPrefHeight(height);
+            spacer.setMaxHeight(height);
+        }
+        else {
+            VBox.setVgrow(spacer, Priority.ALWAYS); // this takes priority over giving the spacers a specified height
+        }
         return spacer;
     }
 

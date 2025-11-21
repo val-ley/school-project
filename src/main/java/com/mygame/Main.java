@@ -21,6 +21,7 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.filters.BloomFilter;
+import com.jme3.post.filters.DepthOfFieldFilter;
 import com.jme3.post.filters.FXAAFilter;
 import com.jme3.post.filters.ToneMapFilter;
 import com.jme3.post.ssao.SSAOFilter;
@@ -52,13 +53,17 @@ public class Main extends SimpleApplication {
     // We store the "Sun" here if we find one, so we can make it cast shadows
     private DirectionalLight mainSun;
 
+    private com.jme3.post.filters.DepthOfFieldFilter dofFilter;
+    private float currentFocusDist = 50f;
+
+
     public static void main(String[] args) {
         Main app = new Main();
         
         // 1. CRITICAL: Configure Settings before start
         AppSettings settings = new AppSettings(true);
         settings.setGammaCorrection(true); // Essential for PBR
-        settings.setTitle("Realistic Office");
+        settings.setTitle("Bunker");
         settings.setResolution(1280, 720);
         
         app.setSettings(settings);
@@ -78,7 +83,8 @@ public class Main extends SimpleApplication {
         // 3. Load Scene Model
         Spatial officeScene = assetManager.loadModel("Scenes/OfficeScene.j3o");
         rootNode.attachChild(officeScene);
-        
+        TextureUtils.setNearestFilter(officeScene);
+
         // 4. EXTRACT LIGHTS from the Scene
         // This finds every lamp, sun, and spot you made in the editor
         extractLightsFromScene(officeScene);
@@ -145,7 +151,7 @@ public class Main extends SimpleApplication {
         // Fixed (Softer)
         // Param 1: Radius (Spread) - Keep at 3.0f or lower to 1.5f for tighter corners
         // Param 2: Intensity (Darkness) - LOWER THIS from 15.0f to roughly 2.0f - 5.0f
-        SSAOFilter ssao = new SSAOFilter(3.0f, 2.5f, 1.0f, 0.1f);
+        SSAOFilter ssao = new SSAOFilter(6.0f, 10f, 1.0f, 0.1f);
         fpp.addFilter(ssao);
 
         // Bloom (Glow)
@@ -157,6 +163,12 @@ public class Main extends SimpleApplication {
         ToneMapFilter toneMap = new ToneMapFilter();
         toneMap.setWhitePoint(new Vector3f(11.2f, 11.2f, 11.2f));
         fpp.addFilter(toneMap);
+
+        dofFilter = new com.jme3.post.filters.DepthOfFieldFilter(); 
+        dofFilter.setFocusDistance(50); 
+        dofFilter.setFocusRange(10);   
+        dofFilter.setBlurScale(1.5f); 
+        fpp.addFilter(dofFilter);
 
         // FXAA (Anti-Aliasing)
         FXAAFilter fxaa = new FXAAFilter();
@@ -170,13 +182,13 @@ public class Main extends SimpleApplication {
 
     private void setupPlayer() {
         playerNode = new Node("Player");
-        playerControl = new BetterCharacterControl(0.2f, 1f, 0.5f);
+        playerControl = new BetterCharacterControl(1f, 5.5f, 2f); // (width), (hight), (weight) in float
         playerNode.addControl(playerControl);
         
         bulletAppState.getPhysicsSpace().add(playerControl);
         rootNode.attachChild(playerNode);
         
-        playerControl.warp(new Vector3f(0.1f, 1f, 1.1f));
+        playerControl.warp(new Vector3f(0.1f, 6f, 1.1f));
     }
 
     private void setupKeys() {
@@ -228,9 +240,10 @@ public class Main extends SimpleApplication {
         Quaternion pitch = new Quaternion().fromAngleAxis(value, Vector3f.UNIT_X);
         cam.getRotation().multLocal(pitch);
     }
-    
+
     @Override
     public void simpleUpdate(float tpf) {
+        // 1. Movement Logic (Your existing code)
         Vector3f nodeDir = playerNode.getLocalRotation().mult(Vector3f.UNIT_Z);
         Vector3f nodeLeft = playerNode.getLocalRotation().mult(Vector3f.UNIT_X);
         
@@ -243,15 +256,51 @@ public class Main extends SimpleApplication {
         walkDirection.y = 0; 
         playerControl.setWalkDirection(walkDirection.mult(5f)); 
 
-        cam.setLocation(playerNode.getWorldTranslation().add(0, 1.6f, 0));
+        cam.setLocation(playerNode.getWorldTranslation().add(0, 5.3f, 0));
         
+        // 2. Camera Sync (Your existing code)
         float[] angles = new float[3];
         playerNode.getLocalRotation().toAngles(angles);
         float[] camAngles = new float[3];
         cam.getRotation().toAngles(camAngles);
         Quaternion currentCamRot = new Quaternion().fromAngles(camAngles[0], angles[1], 0);
         cam.setRotation(currentCamRot);
+
+        // 3. AUTO-FOCUS LOGIC (New)
+        if (dofFilter != null) {
+            // Create a Ray from camera position, pointing forward
+            com.jme3.math.Ray ray = new com.jme3.math.Ray(cam.getLocation(), cam.getDirection());
+            com.jme3.collision.CollisionResults results = new com.jme3.collision.CollisionResults();
+            
+            // Check what the ray hits in the scene
+            rootNode.collideWith(ray, results);
+
+            float targetDist = 100f; // Default to far away if we look at the sky
+            
+            if (results.size() > 0) {
+                // Get distance to the closest object
+                float dist = results.getClosestCollision().getDistance();
+                // Clamp min distance to 1.0f so we don't focus INSIDE our own eyeball
+                targetDist = Math.max(0.5f, dist); 
+            }
+
+            // Smoothly transition focus (Lerp)
+            // '10f * tpf' determines the speed of the eye adaptation
+            float focusSpeed = 10f * tpf; 
+            currentFocusDist = com.jme3.math.FastMath.interpolateLinear(focusSpeed, currentFocusDist, targetDist);
+
+            // Apply to filter
+            dofFilter.setFocusDistance(currentFocusDist);
+            
+            // OPTIONAL: Dynamic Range
+            // When looking at something close (Macro), the range of sharpness is small.
+            // When looking far away (Landscape), the range of sharpness is huge.
+            // This math simulates that physics behavior:
+            dofFilter.setFocusRange(Math.max(5f, currentFocusDist * 2.0f));
+        }
     }
+    
+
     
     @Override
     public void simpleRender(RenderManager rm) {}
