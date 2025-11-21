@@ -17,6 +17,7 @@ import com.jme3.light.DirectionalLight;
 import com.jme3.light.Light;
 import com.jme3.light.PointLight;
 import com.jme3.light.SpotLight;
+import com.jme3.material.Material;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.post.FilterPostProcessor;
@@ -34,6 +35,10 @@ import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.system.AppSettings;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.jme3.material.RenderState;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Geometry;
 
 /**
  * Realistic Office Scene Loader
@@ -84,7 +89,7 @@ public class Main extends SimpleApplication {
         Spatial officeScene = assetManager.loadModel("Scenes/OfficeScene.j3o");
         rootNode.attachChild(officeScene);
         TextureUtils.setNearestFilter(officeScene);
-
+        fixTransparency(officeScene);
         // 4. EXTRACT LIGHTS from the Scene
         // This finds every lamp, sun, and spot you made in the editor
         extractLightsFromScene(officeScene);
@@ -300,6 +305,37 @@ public class Main extends SimpleApplication {
         }
     }
     
+    private void fixTransparency(Spatial spatial) {
+        spatial.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof Geometry) {
+                    Geometry geom = (Geometry) spatial;
+                    Material mat = geom.getMaterial();
+                    
+                    // 1. Enable Alpha Discard (The Magic Fix)
+                    // If a pixel's alpha is lower than 0.5, the GPU skips it entirely.
+                    // This allows walls behind the object to be drawn.
+                    if (mat.getParam("AlphaDiscardThreshold") == null) {
+                        mat.setFloat("AlphaDiscardThreshold", 0.5f);
+                    }
+
+                    // 2. Optional: If you have "True Glass" (windows), you need this instead:
+                    /*
+                    if (geom.getName().contains("Glass")) {
+                        mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                        geom.setQueueBucket(RenderQueue.Bucket.Transparent);
+                        mat.clearParam("AlphaDiscardThreshold"); // Don't use discard on glass
+                    }
+                    */
+                    
+                    // 3. Double Sided (Optional)
+                    // Useful for fences/leaves so you can see them from behind
+                    mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                }
+            }
+        });
+    }
 
     
     @Override
