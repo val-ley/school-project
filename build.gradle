@@ -2,26 +2,31 @@ plugins {
     id 'java'
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.0.13'
-    id 'com.github.johnrengelman.shadow' version '8.1.1' // <--- ADD THIS
-}
-
-javafx {
-    version = "21"
-    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics', 'javafx.swing' ]
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group 'com.mygame'
 version '1.0'
 
+// Define versions here for easier management
+def javafx_version = '21'
+project.ext {
+  jmeVer = '3.8.1-stable'
+}
+
+javafx {
+    version = javafx_version
+    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics', 'javafx.swing' ]
+}
+
 application {
     applicationName = 'Bunker'
     mainClass = 'com.mygame.Main'
     
-    // ... (Your existing JVM args logic is fine here for ./gradlew run)
     if (System.getProperty("os.name").toLowerCase().contains("mac")) {
         applicationDefaultJvmArgs = ['-XstartOnFirstThread']
     }
-    applicationDefaultJvmArgs = [
+    applicationDefaultJvmArgs += [
         '--add-exports=javafx.graphics/com.sun.javafx.cursor=ALL-UNNAMED',
         '--add-exports=javafx.graphics/com.sun.javafx.stage=ALL-UNNAMED',
         '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
@@ -35,11 +40,6 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
-project.ext {
-  jmeVer = '3.8.1-stable'
-}
-
-// ... (Your project(":assets") block remains unchanged) ...
 project(":assets") {
     apply plugin: "java"
     buildDir = rootProject.file("build/assets")
@@ -58,44 +58,66 @@ project(":assets") {
 }
 
 dependencies {
-  // ... (Your existing dependencies remain unchanged) ...
-  implementation "org.jmonkeyengine:jme3-core:$jmeVer"
-  implementation "org.jmonkeyengine:jme3-desktop:$jmeVer"
+    // --- JME Core Dependencies ---
+    implementation "org.jmonkeyengine:jme3-core:$jmeVer"
+    implementation "org.jmonkeyengine:jme3-desktop:$jmeVer"
   
-  if (!System.getProperty("os.name").toLowerCase().contains("mac")) {
-    implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmeVer"
-  }
-  implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVer"
-  implementation "org.jmonkeyengine:jme3-jogg:$jmeVer"
-  implementation "org.jmonkeyengine:jme3-plugins:$jmeVer"
-  implementation "com.simsilica:lemur:1.16.0"
-  implementation "com.github.stephengold:Minie:9.0.1"
-  implementation "org.jmonkeyengine:jme3-networking:$jmeVer"
-  implementation "org.jmonkeyengine:jme3-effects:$jmeVer"
-  implementation "com.simsilica:sio2:1.8.0"
-  implementation "com.github.stephengold:Wes:0.8.1"
-  implementation 'io.tlf.jme:jme-jfx:1.2.1'
+    if (!System.getProperty("os.name").toLowerCase().contains("mac")) {
+        implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmeVer"
+    }
+    implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVer"
+    implementation "org.jmonkeyengine:jme3-jogg:$jmeVer"
+    implementation "org.jmonkeyengine:jme3-plugins:$jmeVer"
+    implementation "com.simsilica:lemur:1.16.0"
+    implementation "com.github.stephengold:Minie:9.0.1"
+    implementation "org.jmonkeyengine:jme3-networking:$jmeVer"
+    implementation "org.jmonkeyengine:jme3-effects:$jmeVer"
+    implementation "com.simsilica:sio2:1.8.0"
+    implementation "com.github.stephengold:Wes:0.8.1"
+    implementation 'io.tlf.jme:jme-jfx:1.2.1'
     
-  // Assets sub-project
-  runtimeOnly project(':assets')
+    // Assets sub-project
+    runtimeOnly project(':assets')
+
+    // --- CROSS-PLATFORM JAVAFX FIX ---
+    // The plugin handles the compile-time dependencies, but we must 
+    // force the runtime natives for Linux and Mac to be included in the JAR.
+    
+    // LINUX NATIVES (Fixes your Ubuntu error)
+    runtimeOnly "org.openjfx:javafx-controls:$javafx_version:linux"
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx_version:linux"
+    runtimeOnly "org.openjfx:javafx-base:$javafx_version:linux"
+    runtimeOnly "org.openjfx:javafx-fxml:$javafx_version:linux"
+    runtimeOnly "org.openjfx:javafx-swing:$javafx_version:linux"
+
+    // MAC NATIVES (Optional, but good for portability)
+    runtimeOnly "org.openjfx:javafx-controls:$javafx_version:mac"
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx_version:mac"
+    runtimeOnly "org.openjfx:javafx-base:$javafx_version:mac"
+    runtimeOnly "org.openjfx:javafx-fxml:$javafx_version:mac"
+    runtimeOnly "org.openjfx:javafx-swing:$javafx_version:mac"
+
+    // WINDOWS NATIVES (Explicitly adding these ensures they aren't lost)
+    runtimeOnly "org.openjfx:javafx-controls:$javafx_version:win"
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx_version:win"
+    runtimeOnly "org.openjfx:javafx-base:$javafx_version:win"
+    runtimeOnly "org.openjfx:javafx-fxml:$javafx_version:win"
+    runtimeOnly "org.openjfx:javafx-swing:$javafx_version:win"
 }
 
-// <--- NEW CONFIG START --->
 shadowJar {
     archiveBaseName.set('Bunker-Single')
-    archiveClassifier.set('') // Removes "-all" from the filename
+    archiveClassifier.set('') 
     archiveVersion.set('1.0')
     
-    // This merges META-INF/services files. 
-    // CRITICAL for JME Plugins, Minie, and Networking to work correctly.
+    // Critical for JME and JavaFX SPI
     mergeServiceFiles()
 
-    // Exclude signature files from dependencies (prevents "Invalid Signature" errors)
+    // Clean up signature files
     exclude 'META-INF/*.SF'
     exclude 'META-INF/*.DSA'
     exclude 'META-INF/*.RSA'
 }
-// <--- NEW CONFIG END --->
 
 jar {
     manifest {

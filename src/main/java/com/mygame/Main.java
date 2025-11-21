@@ -40,10 +40,9 @@ import com.jme3.material.RenderState;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 
-/**
- * Realistic Office Scene Loader
- * Automatically extracts lights from the scene file.
- */
+import com.jme3.shadow.PointLightShadowRenderer;
+import com.jme3.shadow.SpotLightShadowRenderer;
+
 public class Main extends SimpleApplication {
 
     private BulletAppState bulletAppState;
@@ -55,19 +54,28 @@ public class Main extends SimpleApplication {
     private GameUI gameUI; 
     private float mouseSensitivity = 1.0f;
 
-    // We store the "Sun" here if we find one, so we can make it cast shadows
+    // store the sun here if we find one to cast shadows (probably wont be needed at all)
     private DirectionalLight mainSun;
+    private List<Light> allSceneLights = new ArrayList<>(); // THIS IS VERY EXPENSIVE
+    // for those who dont know, a cubemap will need to be generated for shadows every frame on the GPU,
+    // since this game runs at 2K+ FPS on a decent graphics card, I think its fine
 
     private com.jme3.post.filters.DepthOfFieldFilter dofFilter;
     private float currentFocusDist = 50f;
 
+    
 
     public static void main(String[] args) {
+
+        if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+            configureLinuxCompatibility();
+        }
+
         Main app = new Main();
         
-        // 1. CRITICAL: Configure Settings before start
+        // configure Settings before start
         AppSettings settings = new AppSettings(true);
-        settings.setGammaCorrection(true); // Essential for PBR
+        settings.setGammaCorrection(true); // required for PBR textures
         settings.setTitle("Bunker");
         settings.setResolution(1280, 720);
         
@@ -77,61 +85,60 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        // 1. Physics Setup
+        // physics pre-setup
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         
-        // 2. Camera Setup
+        // camera setup
         flyCam.setEnabled(false); 
         cam.setFrustumPerspective(45f, (float)cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
         
-        // 3. Load Scene Model
+        // loading scene and applying filters and transperancy pass
         Spatial officeScene = assetManager.loadModel("Scenes/OfficeScene.j3o");
         rootNode.attachChild(officeScene);
         TextureUtils.setNearestFilter(officeScene);
         fixTransparency(officeScene);
-        // 4. EXTRACT LIGHTS from the Scene
-        // This finds every lamp, sun, and spot you made in the editor
+        // extract and apply lights
         extractLightsFromScene(officeScene);
 
-        // 5. Physics for the Room
+        // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);
         RigidBodyControl officePhys = new RigidBodyControl(officeShape, 0); 
         officeScene.addControl(officePhys);
         bulletAppState.getPhysicsSpace().add(officePhys); 
         
-        // 6. Setup Player
+        // setup and enable player movement
         setupPlayer();
         setupKeys();
 
-        // 7. Setup Post-Processing and Shadows
+        // post processing pass
         setupVisuals();
         
-        // 8. UI
+        // run the UI
         gameUI = new GameUI(this); 
         gameUI.initializeUI();
     }
-    
-    private void extractLightsFromScene(Spatial sceneModel) {
-        List<Light> lightsFound = new ArrayList<>();
 
-        // CHANGE: Use 'SceneGraphVisitor' (Interface) instead of 'SceneGraphVisitorAdapter'
+    private void extractLightsFromScene(Spatial sceneModel) {
+        // clear list when the scene is reloaded
+        allSceneLights.clear(); 
+
         sceneModel.breadthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
-                // Now we can visit every single object (Node or Geometry)
                 for (Light light : spatial.getLocalLightList()) {
-                    lightsFound.add(light);
+                    allSceneLights.add(light);
                 }
             }
         });
 
-        System.out.println("--- LIGHTS FOUND IN SCENE ---");
-        for (Light light : lightsFound) {
+        System.out.println("--- LIGHTS FOUND & ENABLED ---");
+        for (Light light : allSceneLights) {
             System.out.println("Loaded: " + light.getName() + " [" + light.getClass().getSimpleName() + "]");
             
             rootNode.addLight(light);
             
+            // even though we render shadows for all lights, still identify the sun seperate
             if (light instanceof DirectionalLight && mainSun == null) {
                 mainSun = (DirectionalLight) light;
             }
@@ -140,51 +147,68 @@ public class Main extends SimpleApplication {
     }
 
     private void setupVisuals() {
-        // 1. Shadow Renderer
-        // We only enable shadows for the MAIN SUN to save performance.
-        // Calculating shadows for 20 point lights would kill the FPS.
-        if (mainSun != null) {
-            DirectionalLightShadowRenderer dlsr = new DirectionalLightShadowRenderer(assetManager, 2048, 3);
-            dlsr.setLight(mainSun);
-            dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCFPOISSON); // Soft shadows
-            viewPort.addProcessor(dlsr);
+        
+        // loop through lights and add shadows
+        for (Light light : allSceneLights) {
+            
+            // directional light (the sun)
+            if (light instanceof DirectionalLight) {
+                DirectionalLightShadowRenderer dlsr = new DirectionalLightShadowRenderer(assetManager, 2048, 3);
+                dlsr.setLight((DirectionalLight) light);
+                dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCFPOISSON); 
+                viewPort.addProcessor(dlsr);
+            } 
+            
+            // spot lights (flashlight)
+            else if (light instanceof SpotLight) {
+                SpotLightShadowRenderer slsr = new SpotLightShadowRenderer(assetManager, 2048);
+                slsr.setLight((SpotLight) light);
+                slsr.setEdgeFilteringMode(EdgeFilteringMode.PCFPOISSON); 
+                viewPort.addProcessor(slsr);
+            }
+            
+            // point lights (lamp / ceiling light)
+            // this is the expensive (renders 6 times per light), one of the reasons the res is set so low
+            else if (light instanceof PointLight) {
+                PointLightShadowRenderer plsr = new PointLightShadowRenderer(assetManager, 512);
+                plsr.setLight((PointLight) light);
+                plsr.setEdgeFilteringMode(EdgeFilteringMode.PCFPOISSON); 
+                viewPort.addProcessor(plsr);
+            }
         }
 
-        // 2. Post Processing Filter Stack
+        // post processing filters (SSAO, Bloom, etc.)
         FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
 
-        // Fixed (Softer)
-        // Param 1: Radius (Spread) - Keep at 3.0f or lower to 1.5f for tighter corners
-        // Param 2: Intensity (Darkness) - LOWER THIS from 15.0f to roughly 2.0f - 5.0f
+        // SSAO
         SSAOFilter ssao = new SSAOFilter(6.0f, 10f, 1.0f, 0.1f);
         fpp.addFilter(ssao);
 
-        // Bloom (Glow)
+        // Bloom
         BloomFilter bloom = new BloomFilter(BloomFilter.GlowMode.Scene);
         bloom.setBloomIntensity(0.5f);
         fpp.addFilter(bloom);
 
-        // Tone Mapping (HDR -> Monitor colors)
+        // Tone Mapping
         ToneMapFilter toneMap = new ToneMapFilter();
         toneMap.setWhitePoint(new Vector3f(11.2f, 11.2f, 11.2f));
         fpp.addFilter(toneMap);
 
+        // Depth Of Field
         dofFilter = new com.jme3.post.filters.DepthOfFieldFilter(); 
         dofFilter.setFocusDistance(50); 
         dofFilter.setFocusRange(10);   
         dofFilter.setBlurScale(1.5f); 
         fpp.addFilter(dofFilter);
 
-        // FXAA (Anti-Aliasing)
+        // FXAA
         FXAAFilter fxaa = new FXAAFilter();
         fpp.addFilter(fxaa);
 
         viewPort.addProcessor(fpp);
         
-        // Handle transparency correctly
         renderManager.setAlphaToCoverage(true);
     }
-
     private void setupPlayer() {
         playerNode = new Node("Player");
         playerControl = new BetterCharacterControl(1f, 5.5f, 2f); // (width), (hight), (weight) in float
@@ -196,7 +220,7 @@ public class Main extends SimpleApplication {
         playerControl.warp(new Vector3f(0.1f, 6f, 1.1f));
     }
 
-    private void setupKeys() {
+    private void setupKeys() { // author: random dude on reddit, thanks for the movement code!
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_W));
@@ -338,6 +362,23 @@ public class Main extends SimpleApplication {
     }
 
     
+    private static void configureLinuxCompatibility() {
+        System.out.println("--- 🚨 LINUX DETECTED 🚨 : APPLYING COMPATIBILITY FIXES ---");
+
+        // FORCE SOFTWARE RENDERING FOR UI
+        // the crash happens because JavaFX tries to grab the GPU context from Wayland.
+        // setting "sw" should force CPU rendering, dumping the GPU render issues.
+        // This should in theory bypass the "Gdk-CRITICAL" and "SIGSEGV" errors when running on Wayland.
+        System.setProperty("prism.order", "sw");
+        System.setProperty("prism.verbose", "true");
+
+        // FORCE GTK3
+        // Ubuntu 25 might try GTK4, but JavaFX expects GTK3.
+        System.setProperty("jdk.gtk.version", "3");
+        System.setProperty("org.lwjgl.glfw.checkThread0", "false");
+        System.setProperty("org.lwjgl.glfw.libname", "glfw");
+    }
+
     @Override
     public void simpleRender(RenderManager rm) {}
     
