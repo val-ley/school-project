@@ -2,6 +2,7 @@ package com.mygame;
 
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.app.SimpleApplication;
+import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.BetterCharacterControl;
@@ -100,7 +101,8 @@ public class Main extends SimpleApplication {
         fixTransparency(officeScene);
         // extract and apply lights
         extractLightsFromScene(officeScene);
-
+        // enable sound
+        initAudio(officeScene);
         // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);
         RigidBodyControl officePhys = new RigidBodyControl(officeShape, 0); 
@@ -326,6 +328,9 @@ public class Main extends SimpleApplication {
             // When looking far away (Landscape), the range of sharpness is huge.
             // This math simulates that physics behavior:
             dofFilter.setFocusRange(Math.max(5f, currentFocusDist * 2.0f));
+
+            listener.setLocation(cam.getLocation());
+            listener.setRotation(cam.getRotation());
         }
     }
     
@@ -361,6 +366,33 @@ public class Main extends SimpleApplication {
         });
     }
 
+    private void initAudio(Spatial sceneModel) {
+        sceneModel.breadthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof AudioNode) {
+                    AudioNode audio = (AudioNode) spatial;
+                    System.out.println("Found Audio: " + audio.getName());
+
+                    // Logic: If name contains "ambient", play it!
+                    if (audio.getName().toLowerCase().contains("ambient")) {
+                        audio.setLooping(true);
+                        
+                        // Optional: If you want it to be 3D (louder when close), keep Positional=true.
+                        // If you want it to be global background music (same volume everywhere), set Positional=false.
+                        // audio.setPositional(true); 
+                        
+                        // Tweaking physics of sound
+                        audio.setRefDistance(2f); // Distance where volume is 100%
+                        audio.setMaxDistance(20f); // Distance where volume stops dropping
+                        
+                        audio.play();
+                        System.out.println(" -> Playing Ambient Loop");
+                    }
+                }
+            }
+        });
+    }
     
     private static void configureLinuxCompatibility() {
         System.out.println("--- 🚨 LINUX DETECTED 🚨 : APPLYING COMPATIBILITY FIXES ---");
