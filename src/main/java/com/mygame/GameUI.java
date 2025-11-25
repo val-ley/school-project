@@ -1,21 +1,33 @@
 package com.mygame;
 
-import com.jme3.app.SimpleApplication;
+import java.io.InputStream;
+
+import com.jme3.asset.AssetInfo;
+import com.jme3.asset.AssetKey;
+
 import io.tlf.jme.jfx.JavaFxUI;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
-import javafx.scene.layout.*;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-import com.mygame.Main;
 
 /**
  * manages the game UI.
- * features a main menu and a settings screen.
+ * features a main menu with a 3D parallax background.
  */
 public class GameUI {
 
@@ -23,6 +35,11 @@ public class GameUI {
     private StackPane rootPane;
     private VBox mainMenuPane;
     private VBox settingsPane;
+
+    // Parallax Layers
+    private ImageView bgLayer;
+    private ImageView mgLayer;
+    private ImageView fgLayer;
 
     // ID, track the root node for cleanup
     private static final String ROOT_UI_ID = "GameUIRoot";
@@ -33,221 +50,262 @@ public class GameUI {
 
     public void initializeUI() {
         JavaFxUI.initialize(app);
-        // Run the UI construction on the JavaFX thread
         JavaFxUI.getInstance().runInJavaFxThread(this::buildUI);
     }
 
-    /**
-     * Builds the root UI pane and initializes all sub-menus.
-     */ // new
     private void buildUI() {
-        // root Pane Setup
+
+        System.out.println("--- DEBUGGING PATHS ---");
+        // find the Interface folder or textures folder (this is legacy debugging)
+        System.out.println("Root Search: " + getClass().getResource("/"));
+        System.out.println("Texture Search: " + getClass().getResource("/Textures/"));
+        System.out.println("Direct Search: " + getClass().getResource("/Textures/menu/parallax/background.png"));
+        System.out.println("-----------------------");
+        
+        // 1. Root Pane Setup
         rootPane = new StackPane();
         rootPane.setId(ROOT_UI_ID);
 
-        // background Setup (GIF, Scaled and Cropped)
-        try {
-            // file is at src/main/resources/Interface/menu_bg.gif
-            String bgPath = getClass().getResource("/Interface/menu_bg.gif").toExternalForm();
-            Image bgImage = new Image(bgPath);
+        // force the root pane to fill the entire JME window. fixes the fill problem
+        double screenWidth = app.getCamera().getWidth();
+        double screenHeight = app.getCamera().getHeight();
+        
+        rootPane.setPrefSize(screenWidth, screenHeight);
+        rootPane.setMinSize(screenWidth, screenHeight);
+        rootPane.setMaxSize(screenWidth, screenHeight);
 
-            BackgroundImage background = new BackgroundImage(
-                    bgImage,
-                    BackgroundRepeat.NO_REPEAT,
-                    BackgroundRepeat.NO_REPEAT,
-                    BackgroundPosition.CENTER,
-                    new BackgroundSize(1.0, 1.0, true, true, false, true) // The last 'true' is for 'cover'
-            );
-            rootPane.setBackground(new Background(background));
-        } catch (Exception e) {
-            System.err.println("Could not load background GIF. Ensure /src/main/resources/Interface/menu_bg.gif exists.");
-            rootPane.setStyle("-fx-background-color: black;"); // fallback
-        }
+        // initialize parallax layers (order matters for z-indexing)
+        bgLayer = createParallaxLayer("Textures/background.png");
+        mgLayer = createParallaxLayer("Textures/middleground.png");
+        fgLayer = createParallaxLayer("Textures/foreground.png");
 
-        // Create the different menu panes
+        // menu panes
         mainMenuPane = createMainMenuPane();
         settingsPane = createSettingsPane();
 
-        // Add both panes to the root, but hide the settings pane initially
         settingsPane.setVisible(false);
-        rootPane.getChildren().addAll(mainMenuPane, settingsPane);
 
-        // Attach the root pane to the JME UI
+        // order: Back -> Middle -> Front -> UI
+        rootPane.getChildren().addAll(bgLayer, mgLayer, fgLayer, mainMenuPane, settingsPane);
+
+        setupParallaxEffect();
+
         JavaFxUI.getInstance().attachChild(rootPane);
     }
 
     /**
-     * Creates the VBox containing the main menu buttons.
-     * @return A VBox configured as the main menu.
+     * creates an ImageView for screen menu
      */
+    private ImageView createParallaxLayer(String path) {
+        ImageView view = new ImageView();
+        try {
+            // sanitize path for JME
+            String jmePath = path.startsWith("/") ? path.substring(1) : path;
+
+            // attempt to find the files
+            AssetKey<Object> key = new AssetKey<>(jmePath);
+            AssetInfo info = app.getAssetManager().locateAsset(key);
+
+            if (info != null) {
+                // open a stream and pass it to JavaFX
+                try (InputStream stream = info.openStream()) {
+                    Image img = new Image(stream);
+                    view.setImage(img);
+                }
+            } else {
+                System.err.println("JME could not find asset: " + jmePath);
+            }
+
+            // bind dimensions
+            view.fitWidthProperty().bind(rootPane.widthProperty().multiply(1.1));
+            view.fitHeightProperty().bind(rootPane.heightProperty().multiply(1.1));
+            view.setPreserveRatio(false); 
+
+            // prevent infinite scaling Loop
+            // StackPane tries to grow to fit the child but the child tries to be 1.1x the StackPane
+            // tells the StackPane to suck it up and drop this node when calculating its own size
+            view.setManaged(false);
+
+            // Since it is unmanaged, the StackPane won't center it automatically.
+            // We must manually bind X/Y to keep it centered: (ParentWidth - ImageWidth) / 2
+            view.layoutXProperty().bind(rootPane.widthProperty().subtract(view.fitWidthProperty()).divide(2));
+            view.layoutYProperty().bind(rootPane.heightProperty().subtract(view.fitHeightProperty()).divide(2));
+
+        } catch (Exception e) {
+            System.err.println("Failed to load layer: " + path);
+            e.printStackTrace();
+        }
+        return view;
+    }
+
+    /**
+     * calculate movement for layer / mouse parallax
+     */
+    private void setupParallaxEffect() {
+        rootPane.setOnMouseMoved(event -> {
+            double width = rootPane.getWidth();
+            double height = rootPane.getHeight();
+
+            // prevent divide by zero (just in case)
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            double centerX = width / 2.0;
+            double centerY = height / 2.0;
+
+            // use getSceneX()
+            double mouseX = event.getSceneX();
+            double mouseY = event.getSceneY();
+
+            double offsetX = (mouseX - centerX) / centerX; 
+            double offsetY = (mouseY - centerY) / centerY; 
+
+            // clampe values (-1.0 to 1.0)
+            offsetX = Math.max(-1.0, Math.min(1.0, offsetX));
+            offsetY = Math.max(-1.0, Math.min(1.0, offsetY));
+
+            // move layers
+            shiftLayer(bgLayer, offsetX, offsetY, 15); // background
+            shiftLayer(mgLayer, offsetX, offsetY, 30); // middle
+            shiftLayer(fgLayer, offsetX, offsetY, 60); // foreground
+        });
+    }
+
+    /**
+     * move layer based on offset
+     * uses setTranslateX/Y absolute positioning
+     */
+    private void shiftLayer(ImageView layer, double xFactor, double yFactor, double strength) {
+        if (layer != null) {
+            // use negative factor to make the layer move opposite to mouse (3D depth effect)
+            // setTranslateX (absolute) NOT setTranslateX(getTranslateX()..)
+            layer.setTranslateX(-xFactor * strength);
+            layer.setTranslateY(-yFactor * strength);
+        }
+    }
+
     private VBox createMainMenuPane() {
         VBox menuColumn = new VBox();
-        menuColumn.setAlignment(Pos.CENTER_LEFT); // Align content to the left
-        // bind the VBox height to the root height so it stretches top-to-bottom
+        menuColumn.setAlignment(Pos.CENTER_LEFT);
         menuColumn.prefHeightProperty().bind(rootPane.heightProperty());
-        // add some padding on the left so buttons aren't glued to the screen edge
         menuColumn.setStyle("-fx-padding: 0 0 0 50;");
-        // create buttons
+
         Button btnNewGame = createStyledButton("NEW GAME");
         Button btnLoadGame = createStyledButton("LOAD GAME");
         Button btnSettings = createStyledButton("SETTINGS");
         Button btnQuit = createStyledButton("QUIT");
 
-        // setup button actions
         btnNewGame.setOnAction(e -> startGame());
         btnLoadGame.setOnAction(e -> System.out.println("Load Game clicked"));
-        btnSettings.setOnAction(e -> showSettingsScreen(true)); // Show settings 
+        btnSettings.setOnAction(e -> showSettingsScreen(true));
         btnQuit.setOnAction(e -> app.stop());
 
-        // add Buttons with Spacers (To distribute height equally)
         menuColumn.getChildren().addAll(
-                createSpacer(10, "#ff00ff"),
+                createSpacer(10, "transparent"),
                 btnNewGame,
-                createSpacer(10, "#ff00ff"),
+                createSpacer(10, "transparent"),
                 btnLoadGame,
-                createSpacer(10, "#ff00ff"),
+                createSpacer(10, "transparent"),
                 btnSettings,
-                createSpacer(10, "#ff00ff"),
+                createSpacer(10, "transparent"),
                 btnQuit,
-                createSpacer(10, "#ff00ff")
+                createSpacer(10, "transparent")
         );
-        return menuColumn; // new
+        return menuColumn;
     }
 
-    /**
-     * Creates the VBox containing the settings screen controls.
-     * @return A VBox configured as the settings menu.
-     */
-    private VBox createSettingsPane() { // new
-        VBox settingsColumn = new VBox(); // new
-        settingsColumn.setAlignment(Pos.CENTER); // Center-align settings
-        settingsColumn.setSpacing(25); // Add spacing between elements
+    private VBox createSettingsPane() {
+        VBox settingsColumn = new VBox();
+        settingsColumn.setAlignment(Pos.CENTER);
+        settingsColumn.setSpacing(25);
         settingsColumn.prefHeightProperty().bind(rootPane.heightProperty());
 
-        // Add a semi-transparent background to dim the main background
-        settingsColumn.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7);");
+        // darker background for settings legibility
+        settingsColumn.setStyle("-fx-background-color: rgba(0, 0, 0, 0.85);");
 
-        // Settings Title
         Label title = new Label("SETTINGS");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 30));
         title.setTextFill(Color.WHITE);
 
-        // Volume
         Label volumeLabel = new Label("Master Volume:");
         volumeLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
         volumeLabel.setTextFill(Color.WHITE);
 
-        Slider volumeSlider = new Slider(0, 100, 75); // min, max, default
+        Slider volumeSlider = new Slider(0, 100, 75);
         volumeSlider.setMaxWidth(300);
 
-        // Fullscreen
         CheckBox fullscreenCheck = new CheckBox("Enable Fullscreen");
         fullscreenCheck.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
-        fullscreenCheck.setStyle("-fx-text-fill: white;"); // CheckBox text color needs CSS 
+        fullscreenCheck.setStyle("-fx-text-fill: white;");
         fullscreenCheck.setOnAction(e -> System.out.println("Fullscreen toggled: " + fullscreenCheck.isSelected()));
 
-        // Back Button
         Button btnBack = createStyledButton("BACK");
-        btnBack.setOnAction(e -> showSettingsScreen(false)); // Hide settings
-        
-        // Apply Button
-        Button btnApply = createStyledButton("APPLY");
-        btnApply.setOnAction(e -> toggleToFullscreen());
+        btnBack.setOnAction(e -> showSettingsScreen(false));
 
         settingsColumn.getChildren().addAll(title, volumeLabel, volumeSlider, fullscreenCheck, btnBack);
-        return settingsColumn; 
-    } 
+        return settingsColumn;
+    }
 
-    /**
-     * Toggles between the main menu and the settings screen.
-     * @param show true to show settings and hide main menu, false for a vice-versa. 
-     */ 
     private void showSettingsScreen(boolean show) {
-        if (mainMenuPane != null) { 
-            mainMenuPane.setVisible(!show); 
+        if (mainMenuPane != null) {
+            mainMenuPane.setVisible(!show);
         }
         if (settingsPane != null) {
-            settingsPane.setVisible(show); 
+            settingsPane.setVisible(show);
         }
     }
-        public void toggleToFullscreen(Main app) {
-        GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        DisplayMode[] modes = device.getDisplayModes();
-        int i=0; // note: there are usually several, let's pick the first
-        settings.setResolution(modes[i].getWidth(),modes[i].getHeight());
-        settings.setFrequency(modes[i].getRefreshRate());
-        settings.setBitsPerPixel(modes[i].getBitDepth());
-        settings.setFullscreen(device.isFullScreenSupported());
-        app.setSettings(settings);
-        app.restart(); // restart the context to apply changes
-    }
 
-    /**
-     * creates a region that acts as a flexible spacer in a VBox
-     */
     private Region createSpacer(double height, String color) {
         Region spacer = new Region();
-        // CornerRadii makes the corners of the region rounded, Insets defines padding
-        BackgroundFill regionFill = new BackgroundFill(Color.valueOf(color), new CornerRadii(0), new Insets(0));
-        Background background = new Background(regionFill);
-        spacer.setBackground(background);
-        // a height of 0 makes the spacer automatically fill up the menu, otherwise it takes a specified height
+        if (!color.equals("transparent")) {
+            BackgroundFill regionFill = new BackgroundFill(Color.valueOf(color), new CornerRadii(0), new Insets(0));
+            spacer.setBackground(new Background(regionFill));
+        }
+        
         if (height > 0) {
             spacer.setMinHeight(height);
             spacer.setPrefHeight(height);
             spacer.setMaxHeight(height);
         } else {
-            VBox.setVgrow(spacer, Priority.ALWAYS); // this takes priority over giving the spacers a specified height
+            VBox.setVgrow(spacer, Priority.ALWAYS);
         }
         return spacer;
     }
 
-    /**
-     * factory method to create buttons with the specific style
-     */
     private Button createStyledButton(String text) {
         Button btn = new Button(text.toUpperCase());
-
-        // sizing
-        btn.setPrefWidth(250); // fixed width for uniformity
-        btn.setPrefHeight(60); // fixed height for clickability
-
-        // font
+        btn.setPrefWidth(250);
+        btn.setPrefHeight(60);
         btn.setFont(Font.font("Arial", FontWeight.BOLD, 18));
 
-        // CSS Styling
         String styleNormal =
                 "-fx-background-color: rgba(200, 200, 200, 0.3);" +
                         "-fx-text-fill: white;" +
                         "-fx-background-radius: 0;" +
-                        "-fx-border-color: rgba(255, 255, 255, 0.5);" + // slight border for visibility
+                        "-fx-border-color: rgba(255, 255, 255, 0.5);" +
                         "-fx-border-width: 1;" +
                         "-fx-cursor: hand;";
 
         String styleHover =
-                "-fx-background-color: rgba(255, 255, 255, 0.6);" + // brighter on hover
+                "-fx-background-color: rgba(255, 255, 255, 0.6);" +
                         "-fx-text-fill: black;" +
                         "-fx-background-radius: 0;" +
                         "-fx-border-color: white;" +
                         "-fx-cursor: hand;";
 
         btn.setStyle(styleNormal);
-
-        // hover Effects
         btn.setOnMouseEntered(e -> btn.setStyle(styleHover));
         btn.setOnMouseExited(e -> btn.setStyle(styleNormal));
-
         return btn;
     }
 
     private void startGame() {
-        // hide the entire menu UI // new
-        if (rootPane != null) { // new
+        if (rootPane != null) {
             rootPane.setVisible(false);
-        } // new
-        // give focus back to JME // new
+        }
         JavaFxUI.getInstance().runInJmeThread(() -> {
-            app.getInputManager().setCursorVisible(false); // hide mouse for FPS camera
+            app.getInputManager().setCursorVisible(false);
         });
     }
 
