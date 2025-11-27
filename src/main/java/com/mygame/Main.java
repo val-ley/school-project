@@ -45,7 +45,7 @@ import com.jme3.shadow.PointLightShadowRenderer;
 import com.jme3.shadow.SpotLightShadowRenderer;
 
 public class Main extends SimpleApplication {
-
+    
     private BulletAppState bulletAppState;
     private BetterCharacterControl playerControl;
     private Node playerNode;
@@ -227,14 +227,13 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("Down", new KeyTrigger(KeyInput.KEY_S));
-        inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
 
         inputManager.addMapping("RotateLeft", new MouseAxisTrigger(MouseInput.AXIS_X, true));
         inputManager.addMapping("RotateRight", new MouseAxisTrigger(MouseInput.AXIS_X, false));
         inputManager.addMapping("LookUp", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
         inputManager.addMapping("LookDown", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
 
-        inputManager.addListener(actionListener, "Left", "Right", "Up", "Down", "Jump");
+        inputManager.addListener(actionListener, "Left", "Right", "Up", "Down");
         inputManager.addListener(analogListener, "RotateLeft", "RotateRight", "LookUp", "LookDown");
     }
 
@@ -245,7 +244,6 @@ public class Main extends SimpleApplication {
             if (name.equals("Right")) right = isPressed;
             if (name.equals("Up")) up = isPressed;
             if (name.equals("Down")) down = isPressed;
-            if (name.equals("Jump") && isPressed) playerControl.jump();
         }
     };
 
@@ -392,6 +390,12 @@ public class Main extends SimpleApplication {
                 }
             }
         });
+    }
+    
+    public void toggleFullscreen(boolean enabled) {
+        settings.setFullscreen(enabled);
+        setSettings(settings);
+        restart();
     }
     
     private static void configureLinuxCompatibility() {

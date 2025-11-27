@@ -30,6 +30,7 @@ import javafx.scene.text.FontWeight;
  * features a main menu with a 3D parallax background.
  */
 public class GameUI {
+    
 
     private final Main app;
     private StackPane rootPane;
@@ -238,7 +239,7 @@ public class GameUI {
         CheckBox fullscreenCheck = new CheckBox("Enable Fullscreen");
         fullscreenCheck.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
         fullscreenCheck.setStyle("-fx-text-fill: white;");
-        fullscreenCheck.setOnAction(e -> System.out.println("Fullscreen toggled: " + fullscreenCheck.isSelected()));
+        fullscreenCheck.setOnAction(e -> app.toggleFullscreen(fullscreenCheck.isSelected()));
 
         Button btnBack = createStyledButton("BACK");
         btnBack.setOnAction(e -> showSettingsScreen(false));

@@ -1,4 +1,4 @@
-package jme3test.helloworld;
+package com.mygame;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
@@ -17,7 +17,7 @@ public class Sound extends SimpleApplication {
   private AudioNode audio_gun;
 
   public static void main(String[] args) {
-    HelloAudio app = new HelloAudio();
+    Sound app = new Sound();
     app.start();
   }
 
