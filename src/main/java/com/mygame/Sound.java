@@ -51,7 +51,7 @@ public class Sound extends SimpleApplication {
     AudioNode audio_nature = new AudioNode(assetManager, "Sound/Environment/Ocean Waves.ogg", DataType.Stream);
     audio_nature.setLooping(true);  // activate continuous playing
     audio_nature.setPositional(true);
-    audio_nature.setVolume(3);
+    audio_nature.setVolume(5);
     rootNode.attachChild(audio_nature);
     audio_nature.play(); // play continuously!
   }

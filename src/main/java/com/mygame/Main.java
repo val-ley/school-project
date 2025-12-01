@@ -63,6 +63,9 @@ public class Main extends SimpleApplication {
 
     private com.jme3.post.filters.DepthOfFieldFilter dofFilter;
     private float currentFocusDist = 50f;
+    
+    // list to store all sounds to change their volume
+    public List<AudioNode> allSounds = new ArrayList<>();
 
     
 
@@ -220,6 +223,17 @@ public class Main extends SimpleApplication {
         rootNode.attachChild(playerNode);
         
         playerControl.warp(new Vector3f(0.1f, 6f, 1.1f));
+    }
+    
+        /**
+   * Sets the volume for all sounds.
+   * @param volume A value from 0.0 (silent) to 2.0 (full) or higher.
+   */
+    public void setAmbientVolume(float volume) {
+      // Loop through all the sounds we found and set their volume
+      for (AudioNode audio : allSounds) {
+        audio.setVolume(volume);
+      }
     }
 
     private void setupKeys() { // author: random dude on reddit, thanks for the movement code!
@@ -386,6 +400,8 @@ public class Main extends SimpleApplication {
                         
                         audio.play();
                         System.out.println(" -> Playing Ambient Loop");
+                        
+                        allSounds.add(audio);
                     }
                 }
             }

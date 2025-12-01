@@ -235,6 +235,18 @@ public class GameUI {
 
         Slider volumeSlider = new Slider(0, 100, 75);
         volumeSlider.setMaxWidth(300);
+        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            // Convert slider's 0-100 value to the 0.0-2.0f volume range
+            float newVolume = newVal.floatValue() / 50.0f;
+            System.out.println(newVolume);
+            // Call the setAmbientVolume method that now lives in Main.java
+            JavaFxUI.getInstance().runInJmeThread(() -> {
+                app.setAmbientVolume(newVolume);
+            });
+        });
+        JavaFxUI.getInstance().runInJmeThread(() -> {
+            app.setAmbientVolume(75.0f / 50.0f); // 1.5f
+        });
 
         CheckBox fullscreenCheck = new CheckBox("Enable Fullscreen");
         fullscreenCheck.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
