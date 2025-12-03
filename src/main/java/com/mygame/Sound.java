@@ -25,17 +25,17 @@ public class Sound extends SimpleApplication {
   public void simpleInitApp() {
     flyCam.setMoveSpeed(40);
 
-    /** just a blue box floating in space */
-    Box box1 = new Box(1, 1, 1);
-    Geometry player = new Geometry("Player", box1);
-    Material mat1 = new Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
-    mat1.setColor("Color", ColorRGBA.Blue);
-    player.setMaterial(mat1);
-    rootNode.attachChild(player);
+    // /** just a blue box floating in space */
+    // Box box1 = new Box(1, 1, 1);
+    // Geometry player = new Geometry("Player", box1);
+    // Material mat1 = new Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
+    // mat1.setColor("Color", ColorRGBA.Blue);
+    // player.setMaterial(mat1);
+    // rootNode.attachChild(player);
 
-    /** custom init methods, see below */
-    initKeys();
-    initAudio();
+    // /** custom init methods, see below */
+    // initKeys();
+    // initAudio();
   }
 
   /** We create two audio nodes. */
@@ -56,11 +56,11 @@ public class Sound extends SimpleApplication {
     audio_nature.play(); // play continuously!
   }
 
-  /** Declaring "Shoot" action, mapping it to a trigger (mouse left click). */
-  private void initKeys() {
-    inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
-    inputManager.addListener(actionListener, "Shoot");
-  }
+  // /** Declaring "Shoot" action, mapping it to a trigger (mouse left click). */
+  // private void initKeys() {
+  //   inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+  //   inputManager.addListener(actionListener, "Shoot");
+  // }
 
   /** Defining the "Shoot" action: Play a gun sound. */
   final private ActionListener actionListener = new ActionListener() {
