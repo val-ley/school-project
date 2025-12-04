@@ -47,7 +47,7 @@ public class Sound extends SceneGraphVisitorAdapter {
     audio_nature.setPositional(false);
     audio_nature.setVolume(3);
     rootNode.attachChild(audio_nature);
-    audio_nature.play(); // play continuously
+    audio_nature.play(); // play continuously!
   }
 
   /** Move the listener with the a camera - for 3D audio.

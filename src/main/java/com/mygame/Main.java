@@ -1,4 +1,4 @@
-package com.myinitializeUIe;
+package com.mygame;
 
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.app.SimpleApplication;
@@ -71,7 +71,7 @@ public class Main extends SimpleApplication {
 
     public static void main(String[] args) {
 
-        if (System.getProperty("os.name").toLowerCase().contains("linux")) { 
+        if (System.getProperty("os.name").toLowerCase().contains("linux")) {
             configureLinuxCompatibility();
         }
 
@@ -105,8 +105,7 @@ public class Main extends SimpleApplication {
         // extract and apply lights
         extractLightsFromScene(officeScene);
         // enable sound
-                     //initAudio(officeScene);
-        
+        initAudio(officeScene);
         // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);
         RigidBodyControl officePhys = new RigidBodyControl(officeShape, 0); 
@@ -416,7 +415,7 @@ public class Main extends SimpleApplication {
     }
     
     private static void configureLinuxCompatibility() {
-        System.out.println("--- 🚨 LINUX DETECTED 🚨 : APPLYING COMPATIBILITY FIXES ---"); //ew linux
+        System.out.println("--- 🚨 LINUX DETECTED 🚨 : APPLYING COMPATIBILITY FIXES ---");
 
         // FORCE SOFTWARE RENDERING FOR UI
         // the crash happens because JavaFX tries to grab the GPU context from Wayland.
