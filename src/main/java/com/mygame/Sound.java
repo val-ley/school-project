@@ -12,8 +12,9 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 
 /** Sample 11 - playing 3D audio. */
-public class Sound extends SceneGraphVisitorAdapter {
+public class Sound extends SimpleApplication {
 
+  private AudioNode audio_gun;
 
   public static void main(String[] args) {
     Sound app = new Sound();
@@ -24,34 +25,54 @@ public class Sound extends SceneGraphVisitorAdapter {
   public void simpleInitApp() {
     flyCam.setMoveSpeed(40);
 
-    /** just a blue box floating in space */
-    Box box1 = new Box(1, 1, 1);
-    Geometry player = new Geometry("Player", box1);
-    Material mat1 = new Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
-    mat1.setColor("Color", ColorRGBA.Blue);
-    player.setMaterial(mat1);
-    rootNode.attachChild(player);
+    // /** just a blue box floating in space */
+    // Box box1 = new Box(1, 1, 1);
+    // Geometry player = new Geometry("Player", box1);
+    // Material mat1 = new Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
+    // mat1.setColor("Color", ColorRGBA.Blue);
+    // player.setMaterial(mat1);
+    // rootNode.attachChild(player);
 
-    initAudio();
-    
-    
-    
+    // /** custom init methods, see below */
+    // initKeys();
+    // initAudio();
   }
 
   /** We create two audio nodes. */
   private void initAudio() {
+    /* gun shot sound is to be triggered by a mouse click. */
+    audio_gun = new AudioNode(assetManager, "Sound/Effects/Gun.wav", DataType.Buffer);
+    audio_gun.setPositional(false);
+    audio_gun.setLooping(false);
+    audio_gun.setVolume(2);
+    rootNode.attachChild(audio_gun);
 
     /* nature sound - keeps playing in a loop. */
-    AudioNode audio_nature = new AudioNode(assetManager, "Sounds/radio1.wav", DataType.Stream);
+    AudioNode audio_nature = new AudioNode(assetManager, "Sound/Environment/Ocean Waves.ogg", DataType.Stream);
     audio_nature.setLooping(true);  // activate continuous playing
-    audio_nature.setPositional(false);
-    audio_nature.setVolume(3);
+    audio_nature.setPositional(true);
+    audio_nature.setVolume(5);
     rootNode.attachChild(audio_nature);
     audio_nature.play(); // play continuously
   }
 
-  /** Move the listener with the a camera - for 3D audio.
-     * @param tpf */
+  // /** Declaring "Shoot" action, mapping it to a trigger (mouse left click). */
+  // private void initKeys() {
+  //   inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+  //   inputManager.addListener(actionListener, "Shoot");
+  // }
+
+  /** Defining the "Shoot" action: Play a gun sound. */
+  final private ActionListener actionListener = new ActionListener() {
+    @Override
+    public void onAction(String name, boolean keyPressed, float tpf) {
+      if (name.equals("Shoot") && !keyPressed) {
+        audio_gun.playInstance(); // play each instance once!
+      }
+    }
+  };
+
+  /** Move the listener with the a camera - for 3D audio. */
   @Override
   public void simpleUpdate(float tpf) {
     listener.setLocation(cam.getLocation());
