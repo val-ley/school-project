@@ -1,82 +1,110 @@
-package com.mygame;
+package com.mygame; //error check --> error caused in Main.javas
 
-import com.jme3.app.SimpleApplication;
+import com.jme3.app.Application;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioData.DataType;
-import com.jme3.input.MouseInput;
+import com.jme3.font.BitmapText;
+import com.jme3.font.BitmapFont;
+import com.jme3.math.Vector3f;
+import com.jme3.scene.Spatial;
+import com.jme3.scene.Node;
+import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.MouseButtonTrigger;
-import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
-import com.jme3.scene.Geometry;
-import com.jme3.scene.shape.Box;
+import com.jme3.input.controls.KeyTrigger;
 
-/** Sample 11 - playing 3D audio. */
-public class Sound extends SimpleApplication {
+public class Sound {
 
-  private AudioNode audio_gun;
+    private Application app;           // Reference to the main app
+    private Node rootNode, guiNode;
+    private Vector3f penguinPos = new Vector3f(0,0,0);
+    private Spatial penguin;
+    private AudioNode[] radios;
+    private int currentRadio = 0;
+    private float maxDistance = 20;
+    private float switchDiameter = 5;
 
-  public static void main(String[] args) {
-    Sound app = new Sound();
-    app.start();
-  }
+    private BitmapText helloText;
+    private boolean textAttached = false;
 
-  @Override
-  public void simpleInitApp() {
-    flyCam.setMoveSpeed(40);
+    public Sound(Application app, Node rootNode, Node guiNode) {
+        this.app = app;
+        this.rootNode = rootNode;
+        this.guiNode = guiNode;
 
-    // /** just a blue box floating in space */
-    // Box box1 = new Box(1, 1, 1);
-    // Geometry player = new Geometry("Player", box1);
-    // Material mat1 = new Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
-    // mat1.setColor("Color", ColorRGBA.Blue);
-    // player.setMaterial(mat1);
-    // rootNode.attachChild(player);
-
-    // /** custom init methods, see below */
-    // initKeys();
-    // initAudio();
-  }
-
-  /** We create two audio nodes. */
-  private void initAudio() {
-    /* gun shot sound is to be triggered by a mouse click. */
-    audio_gun = new AudioNode(assetManager, "Sound/Effects/Gun.wav", DataType.Buffer);
-    audio_gun.setPositional(false);
-    audio_gun.setLooping(false);
-    audio_gun.setVolume(2);
-    rootNode.attachChild(audio_gun);
-
-    /* nature sound - keeps playing in a loop. */
-    AudioNode audio_nature = new AudioNode(assetManager, "Sound/Environment/Ocean Waves.ogg", DataType.Stream);
-    audio_nature.setLooping(true);  // activate continuous playing
-    audio_nature.setPositional(true);
-    audio_nature.setVolume(5);
-    rootNode.attachChild(audio_nature);
-    audio_nature.play(); // play continuously
-  }
-
-  // /** Declaring "Shoot" action, mapping it to a trigger (mouse left click). */
-  // private void initKeys() {
-  //   inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
-  //   inputManager.addListener(actionListener, "Shoot");
-  // }
-
-  /** Defining the "Shoot" action: Play a gun sound. */
-  final private ActionListener actionListener = new ActionListener() {
-    @Override
-    public void onAction(String name, boolean keyPressed, float tpf) {
-      if (name.equals("Shoot") && !keyPressed) {
-        audio_gun.playInstance(); // play each instance once!
-      }
+        init();
     }
-  };
 
-  /** Move the listener with the a camera - for 3D audio. */
-  @Override
-  public void simpleUpdate(float tpf) {
-    listener.setLocation(cam.getLocation());
-    listener.setRotation(cam.getRotation());
-  }
+    private void init() {
+        // Load penguin model
+        penguin = app.getAssetManager().loadModel("Models/radioModel.glb");
+        penguin.setLocalTranslation(penguinPos);
+        rootNode.attachChild(penguin);
 
+        // Load audio
+        radios = new AudioNode[]{
+            loadRadio("Sounds/mono_radio1.wav"),
+            loadRadio("Sounds/mono_radio2.wav"),
+            loadRadio("Sounds/mono_radio3.wav"),
+            loadRadio("Sounds/mono_radio4.wav")
+
+        };
+        playRadio(0);
+
+        // Bind E key
+        app.getInputManager().addMapping("SwitchRadio", new KeyTrigger(KeyInput.KEY_E));
+        app.getInputManager().addListener(actionListener, "SwitchRadio");
+
+        // Setup proximity text
+        BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
+        helloText = new BitmapText(guiFont, false);
+        helloText.setSize(guiFont.getCharSet().getRenderedSize());
+        helloText.setText("Hello World");
+    }
+
+    private AudioNode loadRadio(String path) {
+        AudioNode node = new AudioNode(app.getAssetManager(), path, DataType.Buffer);
+        node.setLooping(true);
+        node.setPositional(false);
+        node.setVolume(1f);
+        rootNode.attachChild(node);
+        return node;
+    }
+
+    private void playRadio(int index) {
+        for (AudioNode r : radios) r.stop();
+        radios[index].play();
+        currentRadio = index;
+    }
+
+    private final ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("SwitchRadio") && isPressed) {
+                float distance = app.getCamera().getLocation().distance(penguinPos);
+                if (distance <= switchDiameter / 2) {
+                    playRadio((currentRadio + 1) % radios.length);
+                }
+            }
+        }
+    };
+
+    public void update(float tpf) {
+        float distance = app.getCamera().getLocation().distance(penguinPos);
+        float volume = Math.max(0, 1 - distance / maxDistance);
+        radios[currentRadio].setVolume(volume);
+
+        // Show text when close
+        if (distance <= switchDiameter / 2) {
+            if (!textAttached) {
+                helloText.setLocalTranslation(10, app.getContext().getSettings().getHeight() - 10, 0);
+                guiNode.attachChild(helloText);
+                textAttached = true;
+            }
+        } else {
+            if (textAttached) {
+                guiNode.detachChild(helloText);
+                textAttached = false;
+            }
+        }
+    }
 }
