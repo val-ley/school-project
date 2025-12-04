@@ -66,6 +66,9 @@ public class Main extends SimpleApplication {
     
     // list to store all sounds to change their volume
     public List<AudioNode> allSounds = new ArrayList<>();
+    
+    //Sound
+    private Sound audioManager;
 
     
 
@@ -106,7 +109,8 @@ public class Main extends SimpleApplication {
         extractLightsFromScene(officeScene);
         // enable sound
                      //initAudio(officeScene);
-        
+        audioManager = new Sound(this, rootNode, guiNode);
+
         // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);
         RigidBodyControl officePhys = new RigidBodyControl(officeShape, 0); 
@@ -123,6 +127,7 @@ public class Main extends SimpleApplication {
         // run the UI
         gameUI = new GameUI(this); 
         gameUI.initializeUI();
+        
     }
 
     private void extractLightsFromScene(Spatial sceneModel) {
@@ -344,6 +349,13 @@ public class Main extends SimpleApplication {
 
             listener.setLocation(cam.getLocation());
             listener.setRotation(cam.getRotation());
+            
+            
+            //SOUND TEST 
+            if (audioManager != null) {
+            audioManager.update(tpf);
+        }
+
         }
     }
     
