@@ -15,7 +15,7 @@ import com.jme3.input.controls.KeyTrigger;
 public class Sound {
 
     private Application app;           // Reference to the main app
-    private Node rootNode, guiNode;
+    private final Node rootNode, guiNode;
     private Vector3f penguinPos = new Vector3f(0,0,0);
     private Spatial penguin;
     private AudioNode[] radios;
