@@ -20,8 +20,8 @@ public class Sound {
     private Spatial penguin;
     private AudioNode[] radios;
     private int currentRadio = 0;
-    private float maxDistance = 20;
-    private float switchDiameter = 5;
+    private final float maxDistance = 40;
+    private float switchDiameter = 11;
 
     private BitmapText helloText;
     private boolean textAttached = false;
