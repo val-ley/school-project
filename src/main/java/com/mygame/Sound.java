@@ -36,16 +36,18 @@ public class Sound {
 
     private void init() {
         // Load penguin model
-        penguin = app.getAssetManager().loadModel("Models/radioModel.glb");
+        penguin = app.getAssetManager().loadModel("Models/Office1/radioModel.glb");
         penguin.setLocalTranslation(penguinPos);
         rootNode.attachChild(penguin);
+        penguin.setLocalTranslation(5.0f, 3.0f, 1.0f);
+        penguin.rotate(0.0f, 2.0f, 0.0f);
 
         // Load audio
         radios = new AudioNode[]{
-            loadRadio("Sounds/mono_radio1.wav"),
-            loadRadio("Sounds/mono_radio2.wav"),
-            loadRadio("Sounds/mono_radio3.wav"),
-            loadRadio("Sounds/mono_radio4.wav")
+            loadRadio("Sounds/radio/mono_radio1.wav"),
+            loadRadio("Sounds/radio/mono_radio2.wav"),
+            loadRadio("Sounds/radio/mono_radio3.wav"),
+            loadRadio("Sounds/radio/mono_radio4.wav")
 
         };
         playRadio(0);
@@ -58,7 +60,7 @@ public class Sound {
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
         helloText = new BitmapText(guiFont, false);
         helloText.setSize(guiFont.getCharSet().getRenderedSize());
-        helloText.setText("Hello World");
+        helloText.setText("E");
     }
 
     private AudioNode loadRadio(String path) {

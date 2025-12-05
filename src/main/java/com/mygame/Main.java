@@ -1,4 +1,4 @@
-package com.myinitializeUIe;
+package com.mygame;
 
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.app.SimpleApplication;
