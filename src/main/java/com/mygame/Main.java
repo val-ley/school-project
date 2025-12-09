@@ -245,17 +245,19 @@ public class Main extends SimpleApplication {
     }
 
     private void setupKeys() { // author: random dude on reddit, thanks for the movement code!
+        inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
-        inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_W));
+        inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_W));  
         inputManager.addMapping("Down", new KeyTrigger(KeyInput.KEY_S));
+        inputManager.addMapping("ToggleSettings", new KeyTrigger(KeyInput.KEY_ESCAPE));
 
         inputManager.addMapping("RotateLeft", new MouseAxisTrigger(MouseInput.AXIS_X, true));
         inputManager.addMapping("RotateRight", new MouseAxisTrigger(MouseInput.AXIS_X, false));
         inputManager.addMapping("LookUp", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
         inputManager.addMapping("LookDown", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
 
-        inputManager.addListener(actionListener, "Left", "Right", "Up", "Down");
+        inputManager.addListener(actionListener, "Left", "Right", "Up", "Down", "ToggleSettings");
         inputManager.addListener(analogListener, "RotateLeft", "RotateRight", "LookUp", "LookDown");
     }
 
@@ -266,6 +268,9 @@ public class Main extends SimpleApplication {
             if (name.equals("Right")) right = isPressed;
             if (name.equals("Up")) up = isPressed;
             if (name.equals("Down")) down = isPressed;
+            if (name.equals("ToggleSettings") && !isPressed) {
+                gameUI.toggleSettings();
+            }
         }
     };
 

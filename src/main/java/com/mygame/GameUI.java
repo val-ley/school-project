@@ -312,6 +312,20 @@ public class GameUI {
         return btn;
     }
 
+    public void toggleSettings() {
+        JavaFxUI.getInstance().runInJavaFxThread(() -> {
+            if (rootPane.isVisible()) {
+                startGame();
+            } else {
+                rootPane.setVisible(true);
+                showSettingsScreen(true);
+                JavaFxUI.getInstance().runInJmeThread(() -> {
+                    app.getInputManager().setCursorVisible(true);
+                });
+            }
+        });
+    }
+
     private void startGame() {
         if (rootPane != null) {
             rootPane.setVisible(false);
