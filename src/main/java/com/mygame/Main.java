@@ -69,6 +69,7 @@ public class Main extends SimpleApplication {
     
     //Sound
     private Sound audioManager;
+    public float masterVolume = 1.75f;
 
     
 
@@ -233,10 +234,11 @@ public class Main extends SimpleApplication {
     
         /**
    * Sets the volume for all sounds.
-   * @param volume A value from 0.0 (silent) to 2.0 (full) or higher.
+   * @param masterVolume A value from 0.0 (silent) to 2.0 (full) or higher.
    */
     public void setAmbientVolume(float volume) {
       // Loop through all the sounds we found and set their volume
+      masterVolume = volume;
       for (AudioNode audio : allSounds) {
         audio.setVolume(volume);
       }

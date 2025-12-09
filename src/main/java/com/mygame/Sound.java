@@ -93,7 +93,7 @@ public class Sound {
     public void update(float tpf) {
         float distance = app.getCamera().getLocation().distance(penguinPos);
         float volume = Math.max(0, 1 - distance / maxDistance);
-        radios[currentRadio].setVolume(volume);
+        radios[currentRadio].setVolume(volume * ((Main)app).masterVolume);
 
         // Show text when close
         if (distance <= switchDiameter / 2) {

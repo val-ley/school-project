@@ -238,7 +238,6 @@ public class GameUI {
         volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             // Convert slider's 0-100 value to the 0.0-2.0f volume range
             float newVolume = newVal.floatValue() / 50.0f;
-            System.out.println(newVolume);
             // Call the setAmbientVolume method that now lives in Main.java
             JavaFxUI.getInstance().runInJmeThread(() -> {
                 app.setAmbientVolume(newVolume);
