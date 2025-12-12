@@ -19,8 +19,8 @@ public class Sound {
 
     private Application app;           // Reference to the main app
     private Node rootNode, guiNode;
-    private final Vector3f penguinPos = new Vector3f(0,0,0);
-    private final Vector3f chairPos = new Vector3f(0,0,3);
+    private final Vector3f penguinPos = new Vector3f(5, 3, 2);
+    private final Vector3f chairPos = new Vector3f(8, 0, -2);
     private Spatial radioModel;
     private Spatial chairModel;
     private AudioNode[] radios;
@@ -52,10 +52,10 @@ public class Sound {
 
         // Load audio
         radios = new AudioNode[]{
-            loadRadio("Sounds/mono_radio1.wav"),
-            loadRadio("Sounds/mono_radio2.wav"),
-            loadRadio("Sounds/mono_radio3.wav"),
-            loadRadio("Sounds/mono_radio4.wav")
+            loadRadio("Sounds/radio/mono_radio1.wav"),
+            loadRadio("Sounds/radio/mono_radio2.wav"),
+            loadRadio("Sounds/radio/mono_radio3.wav"),
+            loadRadio("Sounds/radio/mono_radio4.wav")
 
         };
         playRadio(0);
@@ -68,7 +68,7 @@ public class Sound {
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
         helloText = new BitmapText(guiFont, false);
         helloText.setSize(guiFont.getCharSet().getRenderedSize());
-        helloText.setText("Hello World");
+        helloText.setText("E");
     }
 
     private AudioNode loadRadio(String path) {

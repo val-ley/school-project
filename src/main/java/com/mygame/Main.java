@@ -70,6 +70,13 @@ public class Main extends SimpleApplication {
     //Sound
     private Sound audioManager;
     public float masterVolume = 1.75f;
+    
+    //Timer
+    private Timer timer;
+    
+    //Door Exit
+    private DoorExit doorExit;
+    
 
     
 
@@ -111,6 +118,12 @@ public class Main extends SimpleApplication {
         // enable sound
                      //initAudio(officeScene);
         audioManager = new Sound(this, rootNode, guiNode);
+        
+        //Timer
+        timer = new Timer(this, guiNode);
+
+        //Door Exited
+        doorExit = new DoorExit(this, guiNode, new Vector3f(2, 0, -8));
 
         // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);
@@ -358,9 +371,17 @@ public class Main extends SimpleApplication {
             listener.setRotation(cam.getRotation());
             
             
-            //SOUND TEST 
+            //SOUND  
             if (audioManager != null) {
             audioManager.update(tpf);
+            
+            timer.update(tpf);
+            doorExit.update(tpf);
+            
+            //FOR TIMER
+            if (doorExit.exitedDoor) {
+                timer.exitedDoor =  true; //same as timer instance
+            }
         }
 
         }
