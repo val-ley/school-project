@@ -12,16 +12,21 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 
+
+// THIS IS FOR THE RADIO AND THE CHAIR CAUSE I DONT WANT TO PUT THE CHAIR SOMEWHERE ELSE
+
 public class Sound {
 
     private Application app;           // Reference to the main app
-    private final Node rootNode, guiNode;
-    private Vector3f penguinPos = new Vector3f(0,0,0);
-    private Spatial penguin;
+    private Node rootNode, guiNode;
+    private final Vector3f penguinPos = new Vector3f(0,0,0);
+    private final Vector3f chairPos = new Vector3f(0,0,3);
+    private Spatial radioModel;
+    private Spatial chairModel;
     private AudioNode[] radios;
     private int currentRadio = 0;
-    private final float maxDistance = 40;
-    private float switchDiameter = 11;
+    private final float maxDistance = 20;
+    private float switchDiameter = 5;
 
     private BitmapText helloText;
     private boolean textAttached = false;
@@ -35,19 +40,22 @@ public class Sound {
     }
 
     private void init() {
-        // Load penguin model
-        penguin = app.getAssetManager().loadModel("Models/Office1/radioModel.glb");
-        penguin.setLocalTranslation(penguinPos);
-        rootNode.attachChild(penguin);
-        penguin.setLocalTranslation(5.0f, 3.0f, 1.0f);
-        penguin.rotate(0.0f, 2.0f, 0.0f);
+        // Load radio model
+        radioModel = app.getAssetManager().loadModel("Models/radioModel.glb");
+        radioModel.setLocalTranslation(penguinPos);
+        rootNode.attachChild(radioModel);
+        
+        // Load chair model
+        chairModel = app.getAssetManager().loadModel("Models/chairModel.glb");
+        chairModel.setLocalTranslation(chairPos);
+        rootNode.attachChild(chairModel);
 
         // Load audio
         radios = new AudioNode[]{
-            loadRadio("Sounds/radio/mono_radio1.wav"),
-            loadRadio("Sounds/radio/mono_radio2.wav"),
-            loadRadio("Sounds/radio/mono_radio3.wav"),
-            loadRadio("Sounds/radio/mono_radio4.wav")
+            loadRadio("Sounds/mono_radio1.wav"),
+            loadRadio("Sounds/mono_radio2.wav"),
+            loadRadio("Sounds/mono_radio3.wav"),
+            loadRadio("Sounds/mono_radio4.wav")
 
         };
         playRadio(0);
@@ -60,7 +68,7 @@ public class Sound {
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
         helloText = new BitmapText(guiFont, false);
         helloText.setSize(guiFont.getCharSet().getRenderedSize());
-        helloText.setText("E");
+        helloText.setText("Hello World");
     }
 
     private AudioNode loadRadio(String path) {
@@ -93,7 +101,7 @@ public class Sound {
     public void update(float tpf) {
         float distance = app.getCamera().getLocation().distance(penguinPos);
         float volume = Math.max(0, 1 - distance / maxDistance);
-        radios[currentRadio].setVolume(volume * ((Main)app).masterVolume);
+        radios[currentRadio].setVolume(volume);
 
         // Show text when close
         if (distance <= switchDiameter / 2) {

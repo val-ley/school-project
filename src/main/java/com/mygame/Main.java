@@ -75,7 +75,7 @@ public class Main extends SimpleApplication {
 
     public static void main(String[] args) {
 
-        if (System.getProperty("os.name").toLowerCase().contains("linux")) { 
+        if (System.getProperty("os.name").toLowerCase().contains("linux")) { //ew linux
             configureLinuxCompatibility();
         }
 
