@@ -123,7 +123,7 @@ public class Main extends SimpleApplication {
         timer = new Timer(this, guiNode);
 
         //Door Exited
-        doorExit = new DoorExit(this, guiNode, new Vector3f(2, 0, -8));
+        doorExit = new DoorExit(this, guiNode, new Vector3f(1, 0, -8));
 
         // enable physics colissions for the room
         CollisionShape officeShape = CollisionShapeFactory.createMeshShape(officeScene);

@@ -14,7 +14,7 @@ public class DoorExit {
     private final Application app;
     private final Node guiNode;
     private final Vector3f zonePos;
-    private final float radius = 3f;
+    private final float radius = 6f;
 
     private BitmapText prompt;
     private boolean promptVisible = false;
@@ -44,7 +44,7 @@ public class DoorExit {
     private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean isPressed, float tpf) {
-            if (!isPressed) return;  // Only on key press
+            if (!isPressed) return;  // Only on key press  if (!isPressed) return;  // Only on
             if (!name.equals("ExitDoor")) return;
 
             // Distance check
